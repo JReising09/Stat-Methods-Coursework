@@ -1,0 +1,354 @@
+---
+title: "Stat Methods I - Homework 6"
+author: "Justin Reising"
+date: "November 27, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(car)
+library(lindia)
+library(gridExtra)
+library(GGally)
+library(lawstat)
+library(knitr)
+library(ggplot2)
+library(leaps)
+library(ggcorrplot)
+#install.packages("olsrr")
+library(olsrr)
+```
+
+
+```{r commercial prop data, include = F, echo=F}
+my.datafile <- tempfile()
+cat(file=my.datafile, "
+Rental Age Operating Vacancy Total 
+ 13.500 1 5.02 0.14 123000
+ 12.000 14 8.19 0.27 104079
+ 10.500 16 3.00 0.00 39998
+ 15.000 4 10.70 0.05 57112
+ 14.000 11 8.97 0.07 60000
+ 10.500 15 9.45 0.24 101385
+ 14.000 2 8.00 0.19 31300
+ 16.500 1 6.62 0.60 248172
+ 17.500 1 6.20 0.00 215000
+ 16.500 8 11.78 0.03 251015
+ 17.000 12 14.62 0.08 291264
+ 16.500 2 11.55 0.03 207549
+ 16.000 2 9.63 0.00 82000
+ 16.500 13 12.99 0.04 359665
+ 17.225 2 12.01 0.03 265500
+ 17.000 1 12.01 0.00 299000
+ 16.000 1 7.99 0.14 189258
+ 14.625 12 10.33 0.12 366013
+ 14.500 16 10.67 0.00 349930
+ 14.500 3 9.45 0.03 85335
+ 16.500 6 12.65 0.13 235932
+ 16.500 3 12.08 0.00 130000
+ 15.000 3 10.52 0.05 40500
+ 15.000 3 9.47 0.00 40500
+ 13.000 14 11.62 0.00 45959
+ 12.500 1 5.00 0.33 120000
+ 14.000 15 9.89 0.05 81243
+ 13.750 16 11.13 0.06 153947
+ 14.000 2 7.96 0.22 97321
+ 15.000 16 10.73 0.09 276099
+ 13.750 2 7.95 0.00 90000
+ 15.625 3 9.10 0.00 184000
+ 15.625 3 12.05 0.03 184718
+ 13.000 16 8.43 0.04 96000
+ 14.000 16 10.60 0.04 106350
+ 15.250 13 10.55 0.10 135512
+ 16.250 1 5.50 0.21 180000
+ 13.000 14 8.53 0.03 315000
+ 14.500 3 9.04 0.04 42500
+ 11.500 15 8.20 0.00 30005
+ 14.250 1 6.13 0.00 60000
+ 15.500 15 8.32 0.00 73521
+ 12.000 1 4.00 0.00 50000
+ 14.250 15 10.10 0.00 50724
+ 14.000 3 5.25 0.16 31750
+ 16.500 3 11.62 0.00 168000
+ 14.500 4 5.31 0.00 70000
+ 15.500 1 5.75 0.00 27000
+ 16.750 4 12.46 0.03 129614
+ 16.750 4 12.75 0.00 129614
+ 16.750 2 12.75 0.00 130000
+ 16.750 2 11.38 0.00 209000
+ 17.000 1 5.99 0.57 220000
+ 16.000 2 11.37 0.27 60000
+ 14.500 3 10.38 0.00 110000
+ 15.000 15 10.77 0.05 101206
+ 15.000 17 11.30 0.00 288847
+ 16.000 1 7.06 0.14 105000
+ 15.500 14 12.10 0.05 276425
+ 15.250 2 10.04 0.06 33000
+ 16.500 1 4.99 0.73 210000
+ 19.250 0 7.33 0.22 240000
+ 17.750 18 12.11 0.00 281552
+ 18.750 16 12.86 0.00 421000
+ 19.250 13 12.70 0.04 484290
+ 14.000 20 11.58 0.00 234493
+ 14.000 18 11.58 0.03 230675
+ 18.000 16 12.97 0.08 296966
+ 13.750 1 4.82 0.00 32000
+ 15.000 2 9.75 0.03 38533
+ 15.500 16 10.36 0.02 109912
+ 15.900 1 8.13 0.23 236000
+ 15.250 15 13.23 0.05 243338
+ 15.500 4 10.57 0.04 122183
+ 14.750 20 11.22 0.00 128268
+ 15.000 3 10.34 0.00 72000
+ 14.500 3 10.67 0.00 43404
+ 13.500 18 8.60 0.08 59443
+ 15.000 15 11.97 0.14 254700
+ 15.250 11 11.27 0.03 434746
+ 14.500 14 12.68 0.03 201930
+", sep=" ")
+options(scipen=999) # suppressing scientific notation
+
+  
+commercial<-read.table(my.datafile,header=T)
+
+attach(commercial)
+
+names(commercial)
+```
+
+
+```{r job prof data, include=F,echo=F}
+my.datafile <- tempfile()
+cat(file=my.datafile, "
+Score X1 X2 X3 X4 
+88.0 86.0 110.0 100.0 87.0
+ 80.0 62.0 97.0 99.0 100.0
+ 96.0 110.0 107.0 103.0 103.0
+ 76.0 101.0 117.0 93.0 95.0
+ 80.0 100.0 101.0 95.0 88.0
+ 73.0 78.0 85.0 95.0 84.0
+ 58.0 120.0 77.0 80.0 74.0
+ 116.0 105.0 122.0 116.0 102.0
+ 104.0 112.0 119.0 106.0 105.0
+ 99.0 120.0 89.0 105.0 97.0
+ 64.0 87.0 81.0 90.0 88.0
+ 126.0 133.0 120.0 113.0 108.0
+ 94.0 140.0 121.0 96.0 89.0
+ 71.0 84.0 113.0 98.0 78.0
+ 111.0 106.0 102.0 109.0 109.0
+ 109.0 109.0 129.0 102.0 108.0
+ 100.0 104.0 83.0 100.0 102.0
+ 127.0 150.0 118.0 107.0 110.0
+ 99.0 98.0 125.0 108.0 95.0
+ 82.0 120.0 94.0 95.0 90.0
+ 67.0 74.0 121.0 91.0 85.0
+ 109.0 96.0 114.0 114.0 103.0
+ 78.0 104.0 73.0 93.0 80.0
+ 115.0 94.0 121.0 115.0 104.0
+ 83.0 91.0 129.0 97.0 83.0
+", sep=" ")
+options(scipen=999) # suppressing scientific notation
+
+  
+job<-read.table(my.datafile,header=T)
+
+attach(job)
+
+names(job)
+```
+
+### 9.11) Refer to Job Proficiency.
+
+**(a)** Using only first-order terms for the predictor variables in the pool of potential $X$ variables, find the four best subset regression model according to the $R^{2}_{a,p}$ criterion.
+
+```{r job reg subsets, fig.align='center',out.width='60%'}
+# From the "leaps"" package
+job.reg.subsets<-regsubsets(Score~X1+X2+X3+X4,data=job,nbest=4)
+plot(job.reg.subsets, scale = "adjr2", main = "Adjusted R^2")
+```
+
+> This plot was constructed using the best subsets algorithm in the "leaps" package in R. The way to read this plot in our model selection is there is a black block where the predictor variable being selected for the model with the corresponding adjusted R squared on the y-axis. So the 4 best models are as follows:
+
+1. For $R^{2}_{a} = 0.96$, the model is $\hat{Y} = \beta_{0} + \beta_{1}X_{1} +\beta_{3}X_{3}+\beta_{4}X_{4}$
+
+2. For $R^{2}_{a} = 0.96$, the model is $\hat{Y} = \beta_{0} + \beta_{1}X_{1}+\beta_{2}X_{2}+ +\beta_{3}X_{3}+\beta_{4}X_{4}$
+
+3. For $R^{2}_{a} = 0.93$, the model is $\hat{Y} = \beta_{0} + \beta_{1}X_{1} +\beta_{3}X_{3}$
+
+4. For $R^{2}_{a} = 0.92$, the model is $\hat{Y} = \beta_{0} + \beta_{1}X_{1}+\beta_{2}X_{2} +\beta_{3}X_{3}$
+
+**(b)** Since there is relatively little difference in $R^{2}_{a,p}$ for the four best subset models, what other criteria would you use to help in the selection of the best model? Discuss.
+
+> As a rule of thumb, we want to consider the model with the least number of predictors that maintain high adjusted R squared. As these are are quite similar in their adjusted R squared values, we may want to consider the Mallows' Cp criterion in addition to the adjusted R squared to investigate which model demonstrates the least amount of bias.
+
+\newpage
+
+### 9.21) Refer to Job Proficiency. Problems 9.10 and 9.18. To assess internally the predictive ability of the regression model indentified in 9.18, compute the PRESS statistic and compare it to SSE. What does the comparison suggest about the validity of MSE as an indicator of the predictive ability of the fitted model?
+
+$$
+\hat{Y} = -124.2 + 0.2963X_{1} + 1.357X_{3} + 0.5174X_{4} \ \ \ (9.18)
+$$
+
+```{r PRESS Stat job}
+job.red.reg<- lm(Score~X1+X3+X4)
+PRESS.statistic <- sum( (resid(job.red.reg)/(1-hatvalues(job.red.reg)))^2 )
+print(paste("PRESS statistic= ", round(PRESS.statistic,2)))
+
+job.anova<-anova(job.red.reg)
+SSE<- job.anova$`Sum Sq`[4]
+PRESS.statistic/SSE
+```
+
+> Note that the ratio of the $\frac{PRESS}{SSE}$ is approximately 1.3 which would indicate that the model is a good fit. Also note that the Adjusted R squared is approximately 0.95 which futher indicates that much of the variation is accounted for in the model. 
+
+
+### 10.2) A researcher stated: "One good thing about added-variable plots is that they are extremely useful for identifying model adequacy even when the predictor variables are not properly specified in the regression model." Comment.
+
+> While the added-variable plots suggests the nature of the functional relation in which a predictor variable should be added to the regression model, it does not provide an analytical expression of the relation. Since added-variable plots for several variables are all concerned with marginal effects only, they may not be effective when the relations of predictor variables to the response variable are complex (Like Principal Components or Interaction Terms). 
+
+
+### 10.3) A student suggested: "If extremely influential outlying cases are detected in a data set, simply discard these cases from the data set." Comment.
+
+> One should not "simply" remove outliers without careful consideration. This is a very subjective process that depends on the domain and type of data. For example, if we were looking at all at-bats for Major League baseball players in a single season, we would expect to see significant outliers for batting average consisting primarily of Nation League pitchers that typically have less than 100 at bats in a season; and even less if they are an American League pitcher. If we remove them, then we restrict the scope of our study by say, considering players with a minimum of 200 plate appearances in a season. The criteria for removing outliers can heavily depend on the context of the data.
+
+\newpage
+
+
+### 10.8) Refer to Commercial Properties.
+
+**(a)** Prepare an added variable plot for each of the predictor variables.
+
+```{r added-variable resid plots, include=F,echo=F}
+comm.reg.full<- lm(Rental~Age+Operating+Vacancy+Total)
+
+comm.reg.age.advar<- lm(Rental~Operating+Vacancy+Total)
+age.reg<- lm(Age~Operating+Vacancy+Total)
+
+comm.reg.op.advar<- lm(Rental~Age+Vacancy+Total)
+op.reg<- lm(Operating~Age+Vacancy+Total)
+
+comm.reg.vac.advar<- lm(Rental~Age+Operating+Total)
+vac.reg<- lm(Vacancy~Age+Operating+Total)
+
+comm.reg.total.advar<- lm(Rental~Age+Operating+Vacancy)
+total.reg<- lm(Total~Age+Operating+Vacancy)
+```
+
+```{r partial regression plots, echo=F, fig.align='center'}
+ols_plot_added_variable(comm.reg.full)
+```
+
+**(b)** Do your plots in part (a) suggest that the regression relationships in the fitted regression function in problem 6.18c are inappropriate for any of the predictor variables? Explain.
+
+> It appears that Age and Total partial regression plots are indicating to be entered into the model in a linear way. Operating looks slightly flat in pattern but to have a bit scatter, however, Vacancy appears to be very flat in pattern which would indicate that Vacancy may not be needed (Which we described in 6.18).
+
+\newpage
+
+### 10.12) Refer to Commercial Properties.
+
+**(a)** Obtain the studentized deleted (externally studentized) residuals and identify any outlying $Y$ observations. Use the Bonferroni outlier test procedure with $\alpha = 0.01$. State the decision rule and conclusion.
+
+```{r Bonferroni outlier tests}
+outlierTest(comm.reg.full, cutoff = .01)
+```
+
+> From a preloaded R package, we can quickly apply the Bonferroni Outlier Test and see that no externally studentized residuals outliers. The plot below can further illustrate this as none of the the residual points fall outside of the critical value bands.
+
+```{r bonferroni resid plot,echo=F, fig.align='center'}
+ti<-rstudent(comm.reg.full)
+count<-1:length(ti)
+
+n<-length(Age)
+p<-ncol(commercial)
+g<-n
+alpha<-0.01
+
+qt(1-alpha/2,n-p-1)
+threshhold<-qt(1-alpha/(2*g),n-p-1) # Using Bonferroni's adjustment
+
+pvalue<-rep(0,n)
+
+for(i in 1:n){
+  pvalue[i]<-2*pt(-abs(ti[i]),n-p-1)
+  
+}
+
+x<-data.frame(ti,pvalue)
+
+ord<-order(pvalue)
+
+x<-x[ord,]
+
+adj.pvalue<-p.adjust(x[,2],method="BH")
+
+x<-data.frame(x,adj.pvalue,adj.pvalue<alpha)
+
+plot(fitted(comm.reg.full), y = ti, xlab = "Estimated mean response", ylab = "Studentized 
+     Deleted Residuals", main = expression(paste(t[i], " vs. estimated mean response")), pch=19, panel.first = grid(col = "gray", lty = "dotted"), ylim = c(min(qt(p = 0.05/(2*g), n-p-1, min(ti))), max(qt(p = 1-0.05/(2*g), n-p-1, max(ti)))))
+
+abline(h = c(qt(p = 0.05/(2*g), n-p-1),qt(p = 1-0.05/(2*g), n-p-1)), col = "deeppink", lwd = 2)
+```
+
+**(b)** Obtain the diagonal elements of the hat matrix. Identify any outlying $X$ observations.
+
+```{r hat diag}
+X<-cbind(rep(1,length(Age)),Age,Operating,Vacancy,Total)
+H<- X%*%solve(t(X)%*%X)%*%t(X)
+#diag(H) 
+
+#Similarly with built in function
+Comm.Inf.Measures<-influence.measures(comm.reg.full)
+#Comm.Inf.Measures$is.inf[,9] -> diag(H)
+which(Comm.Inf.Measures$is.inf[,9] == "TRUE")
+```
+
+
+**(d)** Cases 61, 8, 3, and 53 appear to be outlying $X$ observations, and cases 6 and 62 appear to be outlying $Y$ observations. Obtain the $DIFFITS$, $DFBETAS$, and Cook's Distance values for each case to assess its influence. What do you conclude?
+
+```{r }
+potential.outliers<- Comm.Inf.Measures$infmat[c(3,8,61,53,6,62), -c(7,9)]
+potential.outliers
+#DFFITS
+which(abs(potential.outliers[,6]) > 2*sqrt(p/n))
+```
+
+> The code above chooses which DFFITS values are > $\sqrt{p/n}$ and we can see that observations 6,53,61,62 are influential.
+
+```{r}
+#DFBETAS (For Large Data Set 81 observations)
+which(abs(potential.outliers[c(1:5),6]) > 2*sqrt(n))
+```
+
+> This code shows which DFBETAS values are > $2\sqrt{n}$ which would indicate these observations are influential, but in this case we do not see that occur.
+
+```{r}
+ols_plot_resid_lev(comm.reg.full)
+```
+
+> In this generalized leverage and outlier plot above, we can see that observation 3,8,53,61, and 65 have significant leverage while 6 and 62 are outliers.
+
+
+\newpage
+
+### 10.26) Prove (9.11) using (10.27) and exercise 5.31.
+
+$$
+\sum_{i=1}^{n} \sigma^{2}\lbrace \hat{Y}_{i} \rbrace = p\sigma^{2} \ \ \ \ (9.11)
+$$
+
+$$
+0 \leq h_{ii} \leq 1 \ \ \ \ \sum_{i=1}^{n} h_{ii} = p \ \ \ \ (10.27)
+$$
+
+**Pf**
+$$
+Recall \ \ \ Var(\hat{\vec{Y}}) = \sigma^{2}\vec{H} \implies Var(Y_{i})= \sigma^{2}h_{ii}
+$$
+$$
+\begin{aligned}
+\sum_{i=1}^{n} \sigma^{2}\lbrace \hat{Y}_{i} \rbrace &= \sum_{i=1}^{n} \sigma^{2} h_{ii} \\
+&= \sigma^{2} \sum_{i=1}^{n} h_{ii} \\
+&= p \sigma^{2}
+\end{aligned}
+$$

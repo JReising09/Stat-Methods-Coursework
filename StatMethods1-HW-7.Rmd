@@ -1,0 +1,588 @@
+---
+title: "Stat Methods - Homework 7"
+author: "Justin Reising"
+date: "December 7, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(car)
+library(gridExtra)
+library(lawstat)
+library(knitr)
+library(ggplot2)
+library(leaps)
+library(ggcorrplot)
+```
+
+### 8.12) A student who used a regression model that included indicator variables was upset when recieving only the following output on the multiple regression printout: "**$X^{T}X$** SINGULAR". What is the likely source of the difficulty.
+
+> The source of singularity of the covariance matrix of the predictor variables is most likely from the student using all of the incidences of one or more categorical variables which would create linear dependece of the columns of **$X$** matrix. For example, if a predictor variable is categorical and has 5 unique incidences, then the student likely created 5 indicator variables for each of the incidences rather than using 4. The covariance matrix **$X^{T}X$** should be positive semi-definite with non-zero eigenvalues and invertible as variances on the diagonal should not be zero. Otherwise a variable would be constant for every observation.
+
+
+### 8.14) In a regression study of factors affecting learning time for a certain task (measured in minutes), gender of a learner was included as a predictor variable ($X_{2}$) that was coded $X_{2} = 1$ if male and 0 if female. It was found that $b_{2} = 22.3$ and $s\lbrace b_{2}\rbrace = 3.8$. An observer questioned whether the coding scheme for gender is fair becasue it results in a positive coefficent, leading to longer learning times for males than females. Comment.
+
+> This comment doesn't really make sense as the interpretation of the coefficient would be slightly different than if it were not an indicator variable. In this case, since $X_{2}$ is coded as 1 for male and 0 for female, the coefficent of 22.3 is interpreted as the estimated mean difference in learning time between males and females holding all other variables constant. This means that males' learning time is 22.3 minutes longer than females holding all other variables constant. The model is adjusted for this reference level by the way the indicator variable is coded. Had the researcher switched the coding to 1 for female and 0 for male, we would expect to see a negative coefficient indicating that females' estimated learning time is less than males on average.
+
+\pagebreak
+
+### 8.16) Refer to Grade Point Average. An assistant to the director of admissions conjectured that the predictive power of the model could be imporved by adding information on whether the student had chosen a major field of concentration at the time the application was submitted. Assume that the regression model (8.33) is appropriate, where $X_{1}$ is entrance test score and $X_{2} = 1$ if the student had indicated a major field of concentration at the time of application and 0 if undecided. 
+
+$$
+Y_{i}=\beta_{0}+\beta_{1}X_{i1}+\beta_{2}X_{i2}+\epsilon_{i} \ \ \ \ \ \ \ \ (8.33)
+$$
+
+```{r gpa data, echo=F, message=F}
+my.datafile <- tempfile()
+cat(file=my.datafile, "
+GPA ACT Major
+3.897 21 0
+3.885 14 1
+3.778 28 0
+2.54 22 1
+3.028 21 0
+3.865 31 1
+2.962 32 1
+3.961 27 1
+0.5 29 1
+3.178 26 0
+3.31 24 0
+3.538 30 1
+3.083 24 1
+3.013 24 1
+3.245 33 0
+2.963 27 1
+3.522 25 1
+3.013 31 0
+2.947 25 0
+2.118 20 1
+2.563 24 1
+3.357 21 0
+3.731 28 1
+3.925 27 0
+3.556 28 1
+3.101 26 0
+2.42 28 0
+2.579 22 1
+3.871 26 1
+3.06 21 1
+3.927 25 1
+2.375 16 0
+2.929 28 0
+3.375 26 1
+2.857 22 0
+3.072 24 0
+3.381 21 1
+3.29 30 0
+3.549 27 1
+3.646 26 0
+2.978 26 1
+2.654 30 1
+2.54 24 1
+2.25 26 0
+2.069 29 1
+2.617 24 0
+2.183 31 0
+2 15 1
+2.952 19 1
+3.806 18 1
+2.871 27 1
+3.352 16 0
+3.305 27 1
+2.952 26 1
+3.547 24 1
+3.691 30 1
+3.16 21 1
+2.194 20 1
+3.323 30 1
+3.936 29 0
+2.922 25 0
+2.716 23 1
+3.37 25 0
+3.606 23 0
+2.642 30 0
+2.452 21 1
+2.655 24 0
+3.714 32 0
+1.806 18 1
+3.516 23 1
+3.039 20 0
+2.966 23 1
+2.482 18 1
+2.7 18 1
+3.92 29 1
+2.834 20 0
+3.222 23 1
+3.084 26 1
+4 28 1
+3.511 34 1
+3.323 20 0
+3.072 20 1
+2.079 26 1
+3.875 32 0
+3.208 25 1
+2.92 27 0
+3.345 27 1
+3.956 29 1
+3.808 19 0
+2.506 21 1
+3.886 24 0
+2.183 27 1
+3.429 25 1
+3.024 18 0
+3.75 29 1
+3.833 24 1
+3.113 27 1
+2.875 21 1
+2.747 19 1
+2.311 18 1
+1.841 25 1
+1.583 18 1
+2.879 20 1
+3.591 32 1
+2.914 24 1
+3.716 35 1
+2.8 25 1
+3.621 28 1
+3.792 28 1
+2.867 25 1
+3.419 22 0
+3.6 30 0
+2.394 20 1
+2.286 20 1
+1.486 31 0
+3.885 20 1
+3.8 29 0
+3.914 28 1
+1.86 16 1
+2.948 28 0
+", sep=" ")
+
+x <- read.table(my.datafile, header=T) 
+ 
+attach(x)
+```
+
+**(a)** Explain how each regression coefficient is interpreted here. 
+
+* $\beta_{0}$- Estimated mean predicted GPA of undeclared majors at the time of application given ACT held constant (0). However, ACT scores can only take on values 1-36, which would indicate that this parameter may only serve as an anchor for the regression function to ensure zero mean error.
+* $\beta_{1}$- Estimated mean change in GPA per 1 unit in ACT score of undeclared majors at the time of application.
+* $\beta_{2}$- Estimated mean difference in GPA for students who had declared a major field of concentration than students who did not for any given ACT score.
+
+**(b)** Fit the regression model and state the estimated regression function.
+
+
+**(c)** Test whether the $X_{2}$ variable can be dropped from the regression model; use $\alpha = 0.01$. State the alternatives, decision rule, and conclusion.
+
+$$
+H_{0}: \beta_{2} = 0 \ \ \ \ H_{1}: \beta_{2} \neq 0
+$$
+
+
+**(d)** Obtain the residuals for regression model (8.33) and plot them against $X_{1}$ and $X_{2}$. Is there any evidence in your plot that it would be helpful to include an interaction term in the model?
+
+> Note that we are going to be looking for some sort of inverse relation between X1 and X2 vs the residuals. Wait to see about the indicator variables added to the data from Dr. Lewis.
+
+\pagebreak
+
+### 8.21) In a regression analysis of on-the-job head injuries of warehouse laborers caused by falling objects, $Y$ is a measure of severity of the injury, $X_{1}$ is an index reflecting both the weight of the object and the distance it fell, and $X_{2}$ and $X_{3}$ are indicator variables for the nature of head protection worn at the time of the accident, coded as follows:
+
+```{r head protection, echo=F}
+type.protect<-c("Hard Hat","Bump Cap","None")
+x2<-c(1,0,0)
+x3<-c(0,1,0)
+head.protect<-data.frame(type.protect,x2,x3)
+kable(head.protect, col.names = c("Type of Protection", "$X_{2}$","$X_{3}$" ))
+```
+
+The response function to be used in the study is $E[Y] = \beta_{0}+\beta_{1}X_{1}+\beta_{2}X_{2}+\beta_{3}X_{3}$.
+
+**(a)** Develop a response function for each type of protection category.
+
+* $E[Y_{None}] = \beta_{0}+\beta_{1}X_{1}$
+* $E[Y_{Hard Hat}] = \beta_{0}+\beta_{1}X_{1}+\beta_{2}X_{2}$
+* $E[Y_{Bump Cap}] = \beta_{0}+\beta_{1}X_{1}+\beta_{3}X_{3}$
+
+**(b)** For each of the following questions, specify alternatives $H_{0}$ and $H_{a}$ for the appropriate test: 
+
+* (1) With $X_{1}$ fixed, does wearing a bump cap reduce the expected severity of injury as compared with wearing no protection? 
+
+$$
+H_{0}: \beta_{3} = 0 \ \ \ \ H_{1}: \beta_{3} \neq 0
+$$
+
+> Since $\beta_{3}$ is the estimated mean difference in severity than estimated mean severity of no protection with $X_{1}$ held constant.
+
+* (2) With $X_{1}$ fixed, is the expected severity of injury the same when wearing a hard hat as when wearing a bump cap?
+
+$$
+H_{0}: \beta_{2} = \beta_{3} \ \ \ \ H_{1}: \beta_{2} \neq \beta_{3} 
+$$
+
+> Since $\beta_{2} = \beta_{3}$ would indicate the estimated mean differences for hard hats and bump caps in injury severity from the estimated mean severity of no protection with $X_{1}$ held constant would be the same.
+
+\pagebreak
+
+### 8.22) Refer to tool wear regression model (8.36). Suppose that the indicator variables had been defined as follows: $X_{2}=1$ if tool model M2 and 0 otherwise, $X_{3}=1$ if tool model M3 and 0 otherwise, $X_{4}=1$ if tool model M4 and 0 otherwise. Indicate the meaning of each of the following:
+
+$$
+Y_{i} = \beta_{0}+\beta_{1}X_{i1}+\beta_{2}X_{i2}+\beta_{3}X_{i3}+\beta_{4}X_{i4}+\epsilon_{i} \ \ \ \ \ \ \ (8.36)
+$$
+
+* (1) $\beta_{0}$ - The estimated mean tool wear of tool model "M1" for a given tool speed of 0. In context, a tool speed of 0 may not be interpretable for anything aside from anchoring the regression function (depending on what type of tools are in consideration).
+* (2) $\beta_{4}-\beta_{3}$ - The estimated mean difference in tool wear between tool models "M4" and "M3" for any given tool speed. 
+* (3) $\beta_{1}$ - The estimated mean change in tool wear per 1 unit of tool speed for tool model "M1". 
+
+### 8.27) An analyst wiches to include number of older siblings in family as a predictor variable in a regression analysis of factors affecting maturation in eighth graders. The number of older siblings in the sample observations ranges from 0 to 4. Discuss whether this variable should be placed in the model as an ordinary quantitative variable or by means of 4 0,1 indicator variables. 
+
+> I would be more concerned about how the analyst is measuring maturity in eighth graders with a numeric variable and the validity of such a subjective measure. However, number of siblings is not a simple discrete variable as the analyst is interested 
+
+\pagebreak
+
+
+### 8.28) Refer to regression model (8.31) for the insurance innovation study. Suppose $\beta_{0}$ were dropped from the model to eliminate the linear dependence in the **$X$** matrix so that the model becomes $Y_{i} = \beta_{1}X_{i1}+\beta_{2}X_{i2}+\beta_{3}X_{i3}+\epsilon_{i}$. What is the meaning here of each of the regression coefficients $\beta_{1}$, $\beta_{2}$, and $\beta_{3}$?
+
+$$
+Y_{i} = \beta_{0}+\beta_{1}X_{i1}+\beta_{2}X_{i2}+\beta_{3}X_{i3}+\epsilon_{i} \ \ \ \ \ \ \ (8.31)
+$$
+
+> Although dropping the intercept term $\beta_{0}$ is not recommended for accomodating linear dependence in the **$X$** matrix, there are advantages to removing the intercept term in making infernece for the coefficients. In this case, by removing the intercept term we obtain the following expected values for speed of innovation:
+
+* $E[Y_{size}] = \beta_{1}$ - Since $X_{1}$ is not an indicator variable, we would interpret $\beta_{1}$ as the predicted innovation speed when firm size is 0.
+* $E[Y_{stock}] = \beta_{2}$ - Since $X_{2}$ is an indicator variable for type of firm (reference stock), we would interpret $\beta_{2}$ as the mean innovation speed for stock firms.
+* $E[Y_{mutual}] = \beta_{3}$ - Since $X_{3}$ is an indicator variable for type of firm (reference mutual), we would interpret $\beta_{3}$ as the mean innovation speed for mutual firms.
+
+> Also note that removing the intercept term from the model would also have an affect on $R^{2}$ in such a way that would inflate the value. Interpreting $R^{2}$ can be challenging in this case and I am not sure exactly what the new interpretation could be. Although it would not reflect an increase in goodness of fit. The effect on the definition would be the following:
+
+$$
+R^{2}_{0} = 1- \frac{SSE}{SSTO} = 1 - \frac{\sum_{i=1}^{n} (y_{i}-\hat{y_{i}})^{2}}{\sum_{i=1}^{n}(y_{i})^{2}}
+$$
+
+### 8.34) In a regression study, three types of banks were involved, namely, commercial, mutual savings, and savings and loan. Consider the following system of indicator variables for type of bank:
+
+```{r banks, echo=F}
+tbank<-c("Commercial","Mutual Savings", "Savings & Loan")
+x.2<-c(1,0,-1)
+x.3<-c(0,1,-1)
+bank<-data.frame(tbank,x.2,x.3)
+kable(bank, col.names = c("Type of Bank","$X_{2}$","$X_{3}$"))
+```
+
+**(a)** Develop a first-order linear regression model for relating last year's profit or loss ($Y$) to size of bank ($X_{1}$) and type of bank ($X_{2}$, $X_{3}$).
+
+$$
+Y_{i} = \beta_{0}+\beta_{1}X_{1}+\beta_{2}X_{2}+\beta_{3}X_{3}+\epsilon_{i}
+$$
+
+
+**(b)** State the response functions for the three types of banks.
+
+* $E[Y_{C}] = (\beta_{0} + \beta_{2}) +\beta_{1}X_{1}$
+* $E[Y_{M}] = (\beta_{0} + \beta_{3}) +\beta_{1}X_{1}$
+* $E[Y_{S}] = (\beta_{0} - \beta_{2}-\beta_{3}) +\beta_{1}X_{1}$
+
+**(c)** Interpret each of the following quatities:
+
+* (1) $\beta_{2}$ - Difference of intercept between Commercial banks and Savings & Loan banks in opposite directions.
+
+* (2) $\beta_{3}$ - Difference of intercept between Mutual Savings banks and Savings & Loan banks in opposite directions.
+
+* (3) $-\beta_{2} - \beta_{3}$ - Difference of intercept between Commercial banks and Mutual Savings banks.
+
+\pagebreak
+
+### 11.1) One student remarked to another: "Your residuals show that nonconstancy of error variance is clearly present. Therefore, your regression results are completely invalid."Comment.
+
+> This is not completely true. Constant error variance is not a single indicator of validity of a model per say. If the response varable is Poisson distributed with a mean that increases as a predictor variabele increases, then the response cannot have constant variance at all levels of the predictor since the variance of a Poisson variable equals the mean, which is increasing with the predictor. 
+
+
+### 11.2) An analyst suggested: "One nice thing about robust regression is that you need not worry about outliers and influential observations." Comment.
+
+> While robust regression procedures dampen the influence of outlying cases as compared to ordinary least squares estimation, it is not a "sure thing" in worrying about outliers and influential observations. It could be the case that removing such influential observaitons from the model could have a negative affect on the adequacy of the model and robust regression procedures do not help matters either. Typically, these influential observations should be examined in greater detail to determine how to handle them in regard to consideration for removal, but it also can depend on the size of your dataset and how much of an influence an observation may actually be. In fact, robsust regression can confirm if an influential observation really has an effect on the ordinary least squares estimate.
+
+
+### 11.6) Computer Assisted Learning. Data from a study of computer-assisted learning by 12 students, showing the total number of responses in completing a lesson ($X$) and the coost of computer time ($Y$ in cents) follow:
+
+```{r comp data, echo=F}
+my.datafile <- tempfile()
+cat(file=my.datafile,"
+Y X
+ 77.0 16.0
+ 70.0 14.0
+ 85.0 22.0
+ 50.0 10.0
+ 62.0 14.0
+ 70.0 17.0
+ 55.0 10.0
+ 63.0 13.0
+ 88.0 19.0
+ 57.0 12.0
+ 81.0 18.0
+ 51.0 11.0
+", sep=" ")
+options(scipen=999) # suppressing scientific notation
+
+ 
+computer<-read.table(my.datafile,header=T)
+
+attach(computer)
+#names(computer)
+```
+
+```{r comp table, echo=F}
+kable(t(computer), caption = "Computer Assisted Learning",
+      booktabs=T)
+```
+
+**(a)** Fit a linear regression function by ordinary least squares, obtain the residuals, and plot the residuals against $X$. What does the residual plot suggest?
+
+```{r lm ols, echo=F, out.width='60%', fig.align='center', fig.pos= 'H'}
+comp.lm.ols<-lm(Y~X)
+plot(X,resid(comp.lm.ols), xlab = "Completed Lessons", ylab = "Residuals", main = "Residuals vs Predictor Plot")
+```
+
+> The plot above shows that there may be evidence of non-constant variance and suggests that we may want to consider regressing the absolute residuals against $X$. 
+
+\pagebreak
+
+**(c)** Plot the absolute values of the residuals against $X$. What does this plot suggest about the relation between the standard deviation of the error term and $X$?
+
+```{r plot 2, echo=F,fig.align='center',out.width='60%',fig.pos='H'}
+plot(X,abs(resid(comp.lm.ols)), xlab = "Completed Lessons", ylab = "Absolute Residuals", main = "Absolute Residuals vs Predictor Plot")
+```
+
+> This shows that there is a positive linear relation between the predictor variable $X$ and the absolute residuals and verify's the fan pattern in the previous plot. This suggests that there a linear relation between the error standard deviation and $X$ may be reasonable. 
+
+**(d)**Estimate the standard deviation function by regressing absolute values of the residuals against $X$, and then calculate the estimated weights for each case using (11.16a). Which case recieve the largest weight? Which case recieves the smallest weight?
+
+$$
+w_{i} = \frac{1}{(\hat{s}_{i})^{2}}  \ \ \ \ \ \ \ (11.16a)
+$$
+
+```{r abs lm , echo=F}
+comp.lm.abs<- lm(abs(resid(comp.lm.ols))~X)
+#summary(comp.lm.abs)
+```
+
+* Estimated standard deviation function (OLS): $\hat{s}= -.905 + 0.32X$
+* Max Weight obtained by observation 4.
+* Min Weight obtained by observation 3.
+
+```{r weights, echo=F}
+w_i<- (1/(fitted(comp.lm.abs))^2)
+#which.max(w_i)
+#which.min(w_i)
+```
+
+
+**(e)** Using the estimated weights, obtain the weighted least squares estimates of $\beta_{0}$ and $\beta_{1}$. Are these estimates similar to the ones obtained with the ordinary least squares in part (a)?
+
+```{r wls comp, echo=F, fig.align='center',out.width='80%', fig.pos='H'}
+comp.lm.wls<-lm(Y~X, weights = w_i)
+kable(summary(comp.lm.ols)$coef, digits = 4, caption = "OLS Regression Model")
+kable(summary(comp.lm.wls)$coef, digits = 4, caption = "WLS Regression Model")
+```
+
+> In tables 4 and 5 we can see that he estimates for $\beta_{1}$ are fairly similar where the estimates for $\beta_{0}$ are al ittle more than 2 units more in the OLS model than in the WLS model. 
+
+\pagebreak
+
+**(f)** Compare the estimated standard deviation of the weighted least squares estimates $b_{w0}$ and $b_{w1}$ in part (c) with those for the ordinary least squares in part (a). What do you find?
+
+```{r comp wls abs, echo=F}
+comp.abswls<- lm(abs(resid(comp.lm.wls))~X)
+#summary(comp.abswls)
+```
+
+* Estimated standard deviation function (WLS): $\hat{s}= -1.5711 + 0.3646X$
+
+> $b_{w0}$ appears to be about 0.8 less than the estimate with OLS and $b_{w1}$ is approximately the same differing only by 0.04.
+
+**(Additional)** Compute the bootstrap confidence interval for $\beta_1$ using both the percentile method and reflection method. Also, state which resampling method you choose and why (fixed X or random X). Compare the mean and standard deviation of the the empirical distribution to that found using weighted least squares regression. 
+
+* Weighted Least Squares CI:
+```{r beta1 est compwls}
+alpha<-.05
+b1 <- coef(comp.lm.wls)[2]
+# getting a 95% confidence interval for the true slope beta_1 :
+confint(comp.lm.wls,"X",level=.95)
+lower <- confint(comp.lm.wls,"X",level=.95)[1]
+upper <- confint(comp.lm.wls,"X",level=.95)[2]
+print(paste(100*(1-alpha), "percent CI for slope:", round(lower,4), round(upper,4)))
+```
+* Resampling Method: Random X - Since there is evidence of non-constant error variance in OLS Model.
+```{r empirical compwls}
+### Random X resampling:
+B = 1000
+b1.star.vec = rep(0,times=B)
+for (i in 1:B) {
+boot.samp <- computer[sample(1:(nrow(computer)), replace=T),]
+comp.reg.boot <- lm(Y ~ X, data=boot.samp)
+abs.res.boot <- abs(resid(comp.reg.boot))
+comp.reg2.boot <- lm(abs.res.boot ~ X, data=boot.samp)
+weight.vec.boot <- 1/((fitted(comp.reg2.boot))^2);
+comp.wls.reg.boot <- lm(Y ~ X, weights = weight.vec.boot, data=boot.samp)
+b1.star.vec[i] <- coef(comp.wls.reg.boot)[2]
+}
+```
+* Percentile Method CI:
+```{r percentile method}
+# Percentile-method 95% CI for beta_1:
+
+L.p <- quantile(b1.star.vec, alpha/2)
+U.p <- quantile(b1.star.vec, 1-alpha/2)
+print(paste("Percentile-method 95% CI for beta_1:", round(L.p,4), round(U.p,4)) )
+```
+* Reflection Method CI:
+```{r reflection method}
+# Reflection-method 95% CI for beta_1:
+
+d1 <- b1 - quantile(b1.star.vec, alpha/2)
+d2 <- quantile(b1.star.vec, 1-alpha/2) - b1
+L.r <- b1 - d2
+U.r <- b1 + d1
+print(paste("Reflection-method 95% CI for beta_1:", round(L.r,4), round(U.r,4)) )
+```
+* Compare Standard Deviations
+```{r sd compare}
+# Comparing the Standard Deviations
+summary(comp.lm.wls)
+sd<- .3703
+sd.star<-sd(b1.star.vec)
+sd
+sd.star
+b1_wls<-3.4211
+b1_wls
+mean(b1.star.vec)
+```
+
+> Note that the mean estimates of $\beta_{1}$ of the empirical and the WLS model are practically the same, although the standard deviations are slightly different where the emperical distribution has a slightly higher standard deviation. 
+
+\pagebreak
+
+### 11.9) Refer to Cosmetics Sales. Given above in Figure 1 are the estimated ridge standardized regression coeeficients, the variance inflation factors, and $R^{2}$ for selected biasing constants c.
+
+![Ridge Regression Coefficients](C:\Users\jreis\Dropbox\ETSU Graduate Work\Fall 2018 Graduate Studies\Stat Methods 1\Homework\11.9 figure.PNG)
+
+**(a)** Fit an ordinary ;east squares regression of $Y$ against $X_{1}$, $X_{2}$, and $X_{3}$. Calculate the VIFs. What do these tell you?
+
+```{r cosmetic data, echo=F}
+my.datafile <- tempfile()
+cat(file=my.datafile, "
+Sales X1 X2 X3
+ 12.85 5.6 5.6 3.8
+ 11.55 4.1 4.8 4.8
+ 12.78 3.7 3.5 3.6
+ 11.19 4.8 4.5 5.2
+  9.00 3.4 3.7 2.9
+  9.34 6.1 5.8 3.4
+ 13.80 7.7 7.2 3.8
+  8.79 4.0 4.0 3.8
+  8.54 2.8 2.3 2.9
+  6.23 3.2 3.0 2.8
+ 11.77 4.2 4.5 5.1
+  8.04 2.7 2.1 4.3
+  5.80 1.8 2.5 2.3
+ 11.57 5.0 4.6 3.6
+  7.03 2.9 3.2 4.0
+  0.27 0.0 0.2 2.7
+  5.10 1.4 2.2 3.8
+  9.91 4.2 4.3 4.3
+  6.56 2.4 2.2 3.7
+ 14.17 4.7 4.7 3.4
+  8.32 4.5 4.4 2.7
+  7.32 3.6 2.9 2.8
+  3.45 0.6 0.8 3.4
+ 13.73 5.6 4.7 5.3
+  8.06 3.2 3.3 3.6
+  9.94 3.7 3.5 4.3
+ 11.54 5.5 4.9 3.2
+ 10.80 3.0 3.6 4.6
+ 12.33 5.8 5.0 4.5
+  2.96 3.5 3.1 3.0
+  7.38 2.3 2.0 2.2
+  8.68 2.0 1.8 2.5
+ 11.51 4.9 5.3 3.8
+  1.60 0.1 0.3 2.7
+ 10.93 3.6 3.8 3.8
+ 11.61 4.9 4.4 2.5
+ 17.99 8.4 8.2 3.9
+  9.58 2.1 2.3 3.9
+  7.05 1.9 1.8 3.8
+  8.85 2.4 2.0 2.4
+  7.53 3.6 3.5 2.4
+ 10.47 3.6 3.7 4.4
+ 11.03 3.9 3.6 2.9
+ 12.31 5.5 5.0 5.5
+", sep=" ")
+options(scipen=999) # suppressing scientific notation
+
+  
+cosmetics<-read.table(my.datafile,header=T)
+
+attach(cosmetics)
+```
+```{r cosmetic lm vif}
+cos.lm.ols<- lm(Sales~X1+X2+X3)
+vif(cos.lm.ols)
+```
+
+> With the VIF values approximately 20 for $X_{1}$ and $X_{2}$, there is evidence of significant multicolinearity in these predictor variables.
+
+**(b)** Fit the ridge regression of $Y$ against $X_{1}$, $X_{2}$, and $X_{3}$ using a biasing constant of $\lambda = 0.1$. Write the fitted regression equation.
+
+```{r cosmetic ridge reg, echo=F}
+#library(lmridge)
+#cosmetic.ridge<-lmridge(Sales~.,cosmetics,K=0.01)
+#summary(cosmetic.ridge)
+```
+
+$$
+Y_{i} = 1.06 +0.91X_{1}+0.69X_{2}+0.67X_{3}
+$$
+
+**(c)** How do the SSE's for the two models compare? What about the $R^{2}$ and VIF values?
+
+```{r compare models cosmetics}
+ols.sum<-summary(cos.lm.ols)
+#ridge.sum<-summary(cosmetic.ridge)
+# Transforming the Variables Using Correlation Transformation
+Sales2<-(1/(sqrt(length(Sales)-1)))*((Sales-mean(Sales))/sd(Sales))
+X1_2<-(1/(sqrt(length(Sales)-1)))*((X1-mean(X1))/sd(X1))
+X2_2<-(1/(sqrt(length(Sales)-1)))*((X2-mean(X2))/sd(X2))
+X3_2<-(1/(sqrt(length(Sales)-1)))*((X3-mean(X3))/sd(X3))
+
+cosmetic.reg.trans<- lm(Sales2 ~ X1_2 + X2_2 + X3_2)
+anova(cosmetic.reg.trans)
+
+sse.ols<-0.2583
+
+sd.org.y<-sd(Sales)
+sd.org.X1<-sd(X1)
+sd.org.X2<-sd(X2)
+sd.org.X3<-sd(X3)
+
+b1.trans.X1<-0.9072*(sd.org.X1/sd(Sales))
+b2.trans.X2<-0.6850*(sd.org.X2/sd(Sales))
+b3.trans.X3<--0.6710*(sd.org.X3/sd(Sales))
+
+yhat.trans<-b1.trans.X1*X1_2+b2.trans.X2*X2_2+ b3.trans.X3*X3_2
+sse.ridge<-sum((Sales2-yhat.trans)^2)
+sse.ridge
+sse.ols
+```
+
+* $R^{2}$ - (OLS) 0.7223 - (Ridge) 0.73470
+
+* Ridge VIFs
+             X1      X2      X3
+k=0.01 10.35846 10.6723 1.17124
+
+> Ridge Regression reduced the VIF values for $X_{1}$ and $X_{2}$ by a factor of about 2 bringing the threat of multicolinearity down to a semi-acceptable level. The $R^{2}$ values remained approximately the same, and the SSE of the Ridge model is slightly higher due to the bias introduced.
+
+### 11.12)
+
+
+### 11.19)
+

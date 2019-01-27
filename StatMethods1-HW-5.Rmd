@@ -1,0 +1,613 @@
+---
+title: "Stat Methods I - Homework 5"
+author: "Justin Reising"
+date: "November 10, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(car)
+library(lindia)
+library(gridExtra)
+library(GGally)
+library(lawstat)
+library(knitr)
+library(ggplot2)
+library(leaps)
+library(ggcorrplot)
+```
+
+### 7.8) Refer to Commercial Properties. Test whether both $X_{2}$ and $X_{3}$ can be dropped from the regression model given that $X_{1}$ and $X_{4}$ are retained. Use $\alpha = 0.1$. State the alternatives, decision rule, and colnclusion. What is the P-value of the test?
+
+```{r commercial prop data, include = F, echo=F}
+my.datafile <- tempfile()
+cat(file=my.datafile, "
+Rental Age Operating Vacancy Total 
+ 13.500 1 5.02 0.14 123000
+ 12.000 14 8.19 0.27 104079
+ 10.500 16 3.00 0.00 39998
+ 15.000 4 10.70 0.05 57112
+ 14.000 11 8.97 0.07 60000
+ 10.500 15 9.45 0.24 101385
+ 14.000 2 8.00 0.19 31300
+ 16.500 1 6.62 0.60 248172
+ 17.500 1 6.20 0.00 215000
+ 16.500 8 11.78 0.03 251015
+ 17.000 12 14.62 0.08 291264
+ 16.500 2 11.55 0.03 207549
+ 16.000 2 9.63 0.00 82000
+ 16.500 13 12.99 0.04 359665
+ 17.225 2 12.01 0.03 265500
+ 17.000 1 12.01 0.00 299000
+ 16.000 1 7.99 0.14 189258
+ 14.625 12 10.33 0.12 366013
+ 14.500 16 10.67 0.00 349930
+ 14.500 3 9.45 0.03 85335
+ 16.500 6 12.65 0.13 235932
+ 16.500 3 12.08 0.00 130000
+ 15.000 3 10.52 0.05 40500
+ 15.000 3 9.47 0.00 40500
+ 13.000 14 11.62 0.00 45959
+ 12.500 1 5.00 0.33 120000
+ 14.000 15 9.89 0.05 81243
+ 13.750 16 11.13 0.06 153947
+ 14.000 2 7.96 0.22 97321
+ 15.000 16 10.73 0.09 276099
+ 13.750 2 7.95 0.00 90000
+ 15.625 3 9.10 0.00 184000
+ 15.625 3 12.05 0.03 184718
+ 13.000 16 8.43 0.04 96000
+ 14.000 16 10.60 0.04 106350
+ 15.250 13 10.55 0.10 135512
+ 16.250 1 5.50 0.21 180000
+ 13.000 14 8.53 0.03 315000
+ 14.500 3 9.04 0.04 42500
+ 11.500 15 8.20 0.00 30005
+ 14.250 1 6.13 0.00 60000
+ 15.500 15 8.32 0.00 73521
+ 12.000 1 4.00 0.00 50000
+ 14.250 15 10.10 0.00 50724
+ 14.000 3 5.25 0.16 31750
+ 16.500 3 11.62 0.00 168000
+ 14.500 4 5.31 0.00 70000
+ 15.500 1 5.75 0.00 27000
+ 16.750 4 12.46 0.03 129614
+ 16.750 4 12.75 0.00 129614
+ 16.750 2 12.75 0.00 130000
+ 16.750 2 11.38 0.00 209000
+ 17.000 1 5.99 0.57 220000
+ 16.000 2 11.37 0.27 60000
+ 14.500 3 10.38 0.00 110000
+ 15.000 15 10.77 0.05 101206
+ 15.000 17 11.30 0.00 288847
+ 16.000 1 7.06 0.14 105000
+ 15.500 14 12.10 0.05 276425
+ 15.250 2 10.04 0.06 33000
+ 16.500 1 4.99 0.73 210000
+ 19.250 0 7.33 0.22 240000
+ 17.750 18 12.11 0.00 281552
+ 18.750 16 12.86 0.00 421000
+ 19.250 13 12.70 0.04 484290
+ 14.000 20 11.58 0.00 234493
+ 14.000 18 11.58 0.03 230675
+ 18.000 16 12.97 0.08 296966
+ 13.750 1 4.82 0.00 32000
+ 15.000 2 9.75 0.03 38533
+ 15.500 16 10.36 0.02 109912
+ 15.900 1 8.13 0.23 236000
+ 15.250 15 13.23 0.05 243338
+ 15.500 4 10.57 0.04 122183
+ 14.750 20 11.22 0.00 128268
+ 15.000 3 10.34 0.00 72000
+ 14.500 3 10.67 0.00 43404
+ 13.500 18 8.60 0.08 59443
+ 15.000 15 11.97 0.14 254700
+ 15.250 11 11.27 0.03 434746
+ 14.500 14 12.68 0.03 201930
+", sep=" ")
+options(scipen=999) # suppressing scientific notation
+
+  
+commercial<-read.table(my.datafile,header=T)
+
+attach(commercial)
+
+names(commercial)
+```
+
+```{r comm kable, echo=F }
+kable(head(commercial), caption = "Commercial Properties (Header)",
+      col.names = c("Rental ($Y$)", "Age ($X_{1}$)", "Operating ($X_{2}$)","Vacancy ($X_{3}$)", "Total sq. ft ($X_{4}$)"))
+```
+
+$$
+H_{0}: \beta_{2} = \beta_{3} = 0 \ \ \ H_{1}: \beta_{2} \ or \ \beta_{3} \neq 0
+$$
+
+```{r comm prop lms}
+alpha<-0.1
+p<- 2
+n<-length(Age)
+pf<- ncol(commercial)-1
+comm.reg.full<-lm(Rental~ Age +Operating+Vacancy+Total)
+comm.reg.red<-lm(Rental~Age+Total)
+comm.reg.full.anova<-anova(comm.reg.full)
+comm.reg.red.anova<-anova(comm.reg.red)
+SSE_f<- comm.reg.full.anova$`Sum Sq`[5]
+SSE_r<- comm.reg.red.anova$`Sum Sq`[3]
+MSE_f<- comm.reg.full.anova$`Mean Sq`[5]
+F_star<- ((SSE_r-SSE_f)/p)/MSE_f
+F_star > qf(1-alpha,p,n-pf)
+pf(F_star, p, n-pf, lower=F)
+```
+
+> Since $F^{*} > F_{2,77}$, we reject the null hypothesis and conclude that the variables both $X_{2}$ and $X_{3}$ cannot be dropped from the regression model given that $X_{1}$ and $X_{4}$ are retained. The associated P-value for the test is 0.00006585484, which coincides with the critical value above. 
+
+\newpage
+
+### 7.20) A speaker stated in a workshop on applied regression analysis: "In business and the social sciences, some degree of multicolinearity in survey data is practically inevitable." Does this statement apply equally to experimental data?
+
+> This statement is true in all data sets. If by "some degree", the speaker means "not zero", then one would most definitely expect to see some degree of correlation between variables. If you really think about it, it is easy to ascertain that the probability two random variables have a correlation coefficient of 0 is quite low. In an experimental setting, scientists are interested in determining "causes" by comparing experimental and control groups. As experiments increase in complexity, as does the difficulty in controlling for confounding variables (an example of intercolinearity in and of itself). This is due to the fact that many real-world phenomena can be correlated when they are seemingly unassociated with one another like in the example below.
+
+image: ![](C:\Users\jreis\Dropbox\ETSU Graduate Work\Fall 2018 Graduate Studies\Stat Methods 1\chart.jpeg) 
+
+
+### 7.22) The progress report of a research analyst to the supervisor stated: "All the estimated regression coefficients in our model with three predictor variables to predict sales are statistically significant. Our new preliminary model with seven predictor variables, which includes the three variables of our smaller model, is less satisfactory because only two of the seven regression coefficients are statistically significant. Yet in some initial trials the expanded model is giving more precise sales predictions than the smaller model. The reasons fOr this anomaly are now being investigated." Comment. 
+
+> This would be evidence of multicolinearity between the added variables and the original three variables. It is likely that one or more of the new variables added are functions of one or more of the previous variables in the original model. It could also be attributed to there being significant outliers in the new new variables added to the model. This could maintain or increase precision of the predictions, however, the variation for the regression coefficients increases and it becomes difficult to discern which variables are contributing to the predicted value, which would be the case in the expanded model resulting in only two statistically significant regression coefficients.
+
+\newpage
+
+### 7.24) Refer to Brand Preference.
+
+```{r brand pref data, include=F, echo=F}
+my.datafile <- tempfile()
+cat(file=my.datafile, "
+Liking Moisture Sweetness
+ 64.0  4.0  2.0
+ 73.0  4.0  4.0
+ 61.0  4.0  2.0
+ 76.0  4.0  4.0
+ 72.0  6.0  2.0
+ 80.0  6.0  4.0
+ 71.0  6.0  2.0
+ 83.0  6.0  4.0
+ 83.0  8.0  2.0
+ 89.0  8.0  4.0
+ 86.0  8.0  2.0
+ 93.0  8.0  4.0
+ 88.0 10.0  2.0
+ 95.0 10.0  4.0
+ 94.0 10.0  2.0
+  100.0 10.0  4.0
+", sep=" ")
+options(scipen=999) # suppressing scientific notation
+
+  
+brand<-read.table(my.datafile,header=T)
+
+attach(brand)
+
+names(brand)
+```
+
+
+**(a)** Fit first-order simple linear regression model (2.1) for relating brand liking ($Y$) to moisture content ($X_{1}$). State the fitted regression function. 
+
+$$
+Y_{i} = \beta_{0}+\beta_{1}X_{1} + \epsilon_{i} \ \ \ \ (2.1)
+$$
+
+```{r brand lm first order}
+brand.reg.x1<-lm(Liking~Moisture)
+brand.reg.x1$coefficients
+```
+
+$$
+\hat{Y} = 50.775 + 4.425X_{1}
+$$
+
+**(b)** Compare the estimated regression coefficient for moisture content obtained in part (a) with the corresponding coefficient obtained in Problem 6.5b. What do you find? 
+
+```{r brand reg, echo=T}
+brand.reg<- lm(Liking~Moisture + Sweetness)
+brand.reg$coefficients
+```
+
+$$
+\hat{Y} = 37.65 + 4.425X_{1} + 4.375X_{2}
+$$
+
+> The regression coefficient for $\beta_{1}$ is the same in both models although the intercept does change. This indicates the regression coefficients of $X_{1}$ and $X_{2}$ are not dependent of one another. Thus, each regression coefficient reflects an effect of the associated predictor variable on the response variable, given that the other predictor variables are included in the model.
+
+**(c)** Does $SSR(X_{1})$ equal $SSR(X_{1} | X_{2})$? If not, is the difference substaintial?
+
+Note $SSR(X_{1} | X_{2}) = SSE(X_{2}) - SSE(X_{1},X_{2})$.
+
+```{r}
+brand.reg.x2<-lm(Liking~Sweetness)
+anova.brand.reg<-anova(brand.reg)
+anova.brand.reg.x1<-anova(brand.reg.x1)
+anova.brand.reg.x2<-anova(brand.reg.x2)
+ssr_x1<-anova.brand.reg.x1$`Sum Sq`[1]
+ssr_x2<-anova.brand.reg.x2$`Sum Sq`[1]
+sse_x1<-anova.brand.reg.x1$`Sum Sq`[2]
+sse_x2<-anova.brand.reg.x2$`Sum Sq`[2]
+sse_x1x2<-anova.brand.reg$`Sum Sq`[3]
+ssr_x1x2<-sse_x2 - sse_x1x2
+ssr_x1 - ssr_x1x2
+```
+
+> They are practically equal.
+
+\newpage
+
+**(d)** Refer to the correlation matrix obtained in Problem 6.5a. What bearing does this have on your findings in parts (b) and (c)?
+
+```{r scatterplot and cor, include=T, echo=T, fig.align='center', out.width='60%'}
+ggpairs(brand, aes(alpha = 0.4),
+        upper = list(continuous = wrap("cor", size = 5, color = "red")))+
+  ggtitle("Scatter Plot and Correlation Matrix")
+```
+
+> Note, that the correlation between Moisture ($X_{1}$) and Sweetness ($X_{2}$) is 0. This coincides with the fact that we determined in parts (b) and (c) indicating that Moisture and Sweetness were not dependent of one another. So the extra sum of squares is practically zero.
+
+
+\newpage
+
+### 7.28 b) For a multiple regression model with five $X$ variables, what is the relevant extra sum of squares for testing whether or not $\beta_{5} = 0$ and whether or not $\beta_{2} = \beta_{4} = 0$?
+
+> For $\beta_{5} = 0$, we would consider $SSR(X_{5} | X_{1}, X_{2}, X_{3}, X_{4})$
+
+> For $\beta_{2} = \beta_{4} = 0$, we would consider $SSR(X_{2}, X_{4} | X_{1}, X_{3}, X_{5})$
+
+
+### 7.31) The following regression model is being considered in a water resources study:
+
+$$
+Y_{i} = \beta_{0} + \beta_{1}X_{i1}+ \beta_{2}X_{i2}+\beta_{3}X_{i1}X_{i2}+\beta_{4}\sqrt{X_{i3}}+\epsilon_{i}
+$$
+
+State the reduced models for testing whether or not:
+
+1. $\beta_{3} = \beta_{4} = 0$
+
+$$
+Y_{i} = \beta_{0} + \beta_{1}X_{i1}+ \beta_{2}X_{i2}+\epsilon_{i}
+$$
+
+2. $\beta_{3} = 0$
+
+$$
+Y_{i} = \beta_{0} + \beta_{1}X_{i1}+ \beta_{2}X_{i2}+\beta_{4}\sqrt{X_{i3}}+\epsilon_{i}
+$$
+
+3. $\beta_{1} = \beta_{2} = 5$
+
+$$
+Y_{i} = \beta_{0} + 5X_{i1}+5X_{i2}+\beta_{3}X_{i1}X_{i2}+\beta_{4}\sqrt{X_{i3}}+\epsilon_{i}
+$$
+
+4. $\beta_{4} = 7$
+
+$$
+Y_{i} = \beta_{0} + \beta_{1}X_{i1}+ \beta_{2}X_{i2}+\beta_{3}X_{i1}X_{i2}+7\sqrt{X_{i3}}+\epsilon_{i}
+$$
+
+\newpage
+
+### 8.3) A junior investment anlayst used a polynomial regression model of relatively high order in a research seminar on municipal bonds and obtained a $R^{2}$ of 0.991 in the regression of net interest yeild of bond ($Y$) on industrial diversity index on municipality ($X$) for seven bond issues. A classmate, unimpressed, said, "You overfitted. Your curve follows the random effects in the data."
+
+**(a)** Comment on the criticism.
+
+> For any polynomial regression model, it important to recognize that the size of the data set matters. In this example, the number of observations is extremely small with only 7 bond issues. Fitting a polynomial regression model (of "relatively" high order) with such a small dataset will tend to describe the variation rather than overall trend. Also, without seeing the plot, it's hard to say how bad a higher order polynomial regression model may be compared to a first or second order model. Achieving high $R^{2}$ that approaches 100% of explained variance is not the only goal of regression models; it must also be able to appropriately handle new observations in the attempt to predict the response with decent accuracy. 
+
+**(b)** Might $R^{2}_{a}$ defined in (6.42) be more appropriate than $R^{2}$ as a descriptive measure here?
+
+> This would be more appropriate as it would take into account the number of terms included as predictors. In this case, the higher order terms. An even better descriptive measure would be the predicted $R^{2}$.
+
+
+### 8.8) Refer to Commercial Properties. The vacancy rate predictor ($X_{3}$) does not appear to be needed when property age ($X_{1}$), operating expenses ($X_{2}$), and total square footage ($X_{4}$) are included in the model as predictors of rental rates ($Y$).
+
+**(a)** The age of the property ($X_{1}$) appears to exhibit some curvature when plotted against the rental rates ($Y$). Fit a polynomial regression model with centered property age ($x_{1}$), square of centered property age ($x_{1}^{2}$), operating expenses ($X_{2}$), and total square footage ($X_{4}$). Plot the $Y$ observations against the fitted values. Does the response function provide a good fit?
+
+```{r comm poly model}
+cAge<-Age-mean(Age)
+sqAge<-cAge**2
+comm.reg.centered<- lm(Rental~cAge+sqAge+Operating+Total)
+comm_poly_df<-data.frame(Rental,comm.reg.centered$fitted.values)
+```
+
+```{r comm poly plot, echo = F, out.width='60%', fig.align='center'}
+ggplot(data = comm_poly_df, aes(x = comm_poly_df$Rental, 
+          y = comm_poly_df$comm.reg.centered.fitted.values)) + 
+  geom_point(color='blue') +
+  geom_smooth(method = "lm", se = T, color = "red") +
+  ggtitle("Obs. Rental Rates v.s Polynomial Fitted Values Plot")+
+  xlab("Observed Y")+ylab("Fitted Values")
+```
+
+> Since there are significant deviations from the regression line near the mean as oppose to the upper and lower bounds. To me, this indicates that model is not a good fit.
+
+\newpage
+
+**(b)** Calculate $R_{a}^{2}$. What information does this measure provide?
+
+```{r adj r sq}
+comm.reg.cen.sum<-summary(comm.reg.centered)
+comm.reg.cen.sum$adj.r.squared
+```
+
+> This measure informs us that approximately 59.27% of the variance is explained after taking into account the number of terms in the regression model. This is not particularly high, and as we can see in the plot, a lot of the points are falling outside of the bands around the regression line, especially around the center of the plot where the mean is.
+
+**(c)** Test whether or not the square of centered property age ($x_{1}^{2}$) can be dropped from the model. Use $\alpha = 0.05$. State the alternatives, decision rule, and conclusion. What is the P-value of the test?
+
+$$
+H_{0}: \beta_{2}=0 \ \ \ H_{1}: \beta_{2} \neq 0
+$$
+
+Note, alternatively, we are testing $F^{*} = \frac{SSR(x^{2}_{2} | x_{1},X_{2},X_{4})}{MSE}$
+
+```{r beta 2 test}
+aplha<-.05
+n<- length(cAge)
+p<- 1
+anova.comm.reg.centered<-anova(comm.reg.centered)
+F_star<- anova.comm.reg.centered$`Sum Sq`[2]/anova.comm.reg.centered$`Mean Sq`[5]
+F_star > qf(1-alpha,p,n-p)
+pf(F_star, p, n-p, lower=F)
+```
+
+> Since $F^{*} \leq F_{(1,79)}$, we fail to reject the null hypothesis and conclude that the square of centered property age ($x_{1}^{2}$) can be dropped from the model. Also, the P-value is 0.996284.
+
+\newpage
+
+
+### 8.11) Refer to Brand Preferences.
+
+**(a)** Fit regression model (8.22)
+
+$$
+Y_{i} = \beta_{0}+\beta_{1}X_{i1}+\beta_{2}X_{i2}+\beta_{3}X_{i3}+\beta_{4}X_{i1}X_{i2}+\beta_{5}X_{i1}X_{i3} +\epsilon_{i} \ \ \ \ (8.22)
+$$
+```{r brand int lm}
+brand.reg.int<- lm(Liking~Moisture+Sweetness+Moisture:Sweetness)
+brand.reg.int$coefficients
+```
+
+$$
+\hat{Y}=27.15 + 5.925X_{1}+7.875X_{2}-0.5X_{1}X_{2}
+$$
+
+**(b)** Test whether or not the interaction term can be dropped from the model. Use $\alpha = 0.05$. State the alternatives, decision rule, and conclusion.
+
+Note, $F^{*} = \frac{SSE_{red} - SSE_{full}}{MSE_{full}}$
+
+$$
+H_{0}: \beta_{3}=0 \ \ \ \ H_{1}: \beta_{3} \neq 0
+$$
+Note, the high correlation between the predictor variables and interaction terms. We will center the variables in the regression model.
+
+```{r corplot brandint, echo=F, fig.align='center', out.width='60%'}
+brand.int.df<-cbind(brand,Moisture*Sweetness)
+ggcorrplot(cor(brand.int.df), lab = T, type = "lower",
+           title = "Brand Interaction Correlation Plot")
+```
+
+
+```{r brand int test}
+cMoisture<- Moisture-mean(Moisture)
+cSweetness<- Sweetness-mean(Sweetness)
+cM_S<- cMoisture*cSweetness
+brand.int.cen.reg<-lm(Liking~cMoisture+cSweetness+cM_S)
+anova.brand.int.reg<-anova(brand.int.cen.reg)
+brand.cen.reg<- lm(Liking~cMoisture+cSweetness)
+anova.brand.cen.reg<-anova(brand.cen.reg)
+alpha<-0.05
+n<-length(Liking)
+p<-1
+sse_r<-anova.brand.cen.reg$`Sum Sq`[3]
+sse_f<-anova.brand.int.reg$`Sum Sq`[4]
+mse_f<-anova.brand.int.reg$`Mean Sq`[4]
+F_star<-(sse_r-sse_f)/mse_f
+F_star>qf(1-alpha,p,n-p)
+```
+
+> Since $F^{*} \leq F_{(1,15)}$, we fail to reject the null hypothesis and conclude that the interaction term can be dropped from the model. 
+
+\newpage
+
+### 8.29) Consider the second-order regression model with one predictor variable in (8.2) and the following two sets of $X$ values.
+
+$$
+Y_{i}=\beta_{0}+\beta_{1}x_{i}+\beta_{11}x_{i}^{2}+\epsilon_{i} \ \ \ \ \ (8.2)
+$$
+
+
+\begin{table}[h]
+\centering 
+\begin{tabular}{c c c c c c c c c}
+\hline
+\textbf{Set 1:} & 1.0 & 1.5 & 1.1 & 1.3 & 1.9 & 0.8 & 1.2 & 1.4 \\
+\textbf{Set 2:} & 12 & 1 & 123 & 17 & 415 & 71 & 283 & 38 \\
+\hline 
+\end{tabular}
+\end{table}
+
+For each set, calculate the coefficient correlation between $X$ and $X^{2}$, then between $x$ and $x^{2}$. Also calculate the coefficients of correlation between $X$ and $X^{3}$ and between $x$ and $x^{3}$. What generalizations are suggested by your results?
+
+```{r set cors, echo=F, fig.align='center',out.width='80%'}
+S1<- c(1.0, 1.5,1.1,1.3,1.9,0.8,1.2,1.4)
+S2<- c(12,1,123,17,415,71,283,8)
+s1<- S1-mean(S1)
+s2<-S2-mean(S2)
+S1_sq<-S1^2
+S2_sq<-S2^2
+s1_sq<-s1^2
+s2_sq<-s2^2
+S1_cub<-S1^3
+S2_cub<-S2^3
+s1_cub<-s1^3
+s2_cub<-s2^3
+sets.df<-cbind(S1,S2,s1,s2,S1_sq,S2_sq,s1_sq,s2_sq)
+sets2.df<-cbind(S1,S2,s1,s2,S1_cub,S2_cub,s1_cub,s2_cub)
+p1<-ggcorrplot(cor(sets.df), lab = T, type = "lower",
+           lab_size = 2, title = "Set Interactions Corr-Plot")
+p2<-ggcorrplot(cor(sets2.df), lab = T, type = "lower",
+           lab_size = 2, title = "Set Interactions Corr-Plot")
+cor_diffs<-cor(sets2.df) - cor(sets.df)
+p3<-ggcorrplot(cor_diffs, lab = T, type = "lower", show.legend = F,
+           lab_size = 2, title = "Differences Corr-Plot")
+grid.arrange(p1,p2,p3, ncol=2, nrow=2)
+```
+
+> One thing to note is that both sets contain strictly positive values, which gives us strictly positive correlations. Here, we can see that for both sets, $\rho_{X,x} = 1$, while between sets, $\rho_{x_{1},x_{2}} = 0.5$. Also, these remain unchanged between the squared copmarisons and the cubed comparisons. In the differences plot, we can see that increasing the order of the generally increases the correlation and quite significantly for Set 1 as seen in column 6. Also note that the variance for Set one is very low (0.11) and the correlation between the centered sets 1 and 2 and other terms quickly approaches 1 by increasing the order. 
+
+
+\newpage
+
+### 9.4) In forward stepwise regression, what advantage is there in using relatively small $\alpha$-to-enter value for adding variables? What andvatage is there for using a larger $\alpha$-to-enter value?
+
+> The choice of a relatively small $\alpha$-to-enter value will help suppress the "picking procedure" in picking too many predictor variables, although too small of an $\alpha$-to-enter value can be too conservative and cause $\sigma^{2}$ to be severely overestimated. The advantage for a larger $\alpha$-to-enter value is that it could include more predictor variables that may end up having more of an effect and allow previously entered predictor variables to drop out. 
+
+
+### 9.10) Job Proficiency. A personnel officer in a government agency administered four newly developed aptitude tests to each of 25 applicants for entry-level clerical ositions in the agency. For the purpose of the study, all 25 applicants were accepted for positions irrespective of their test scores. After a probationary period, each applicant was rated for proficiency on the job. The scores on the four tests ($X_{1}$, $X_{2}$, $X_{3}$, $X_{4}$) and the job proficiency score ($Y$) for the 25 employees were as follows:
+
+```{r job prof data, include=F,echo=F}
+my.datafile <- tempfile()
+cat(file=my.datafile, "
+Score X1 X2 X3 X4 
+88.0 86.0 110.0 100.0 87.0
+ 80.0 62.0 97.0 99.0 100.0
+ 96.0 110.0 107.0 103.0 103.0
+ 76.0 101.0 117.0 93.0 95.0
+ 80.0 100.0 101.0 95.0 88.0
+ 73.0 78.0 85.0 95.0 84.0
+ 58.0 120.0 77.0 80.0 74.0
+ 116.0 105.0 122.0 116.0 102.0
+ 104.0 112.0 119.0 106.0 105.0
+ 99.0 120.0 89.0 105.0 97.0
+ 64.0 87.0 81.0 90.0 88.0
+ 126.0 133.0 120.0 113.0 108.0
+ 94.0 140.0 121.0 96.0 89.0
+ 71.0 84.0 113.0 98.0 78.0
+ 111.0 106.0 102.0 109.0 109.0
+ 109.0 109.0 129.0 102.0 108.0
+ 100.0 104.0 83.0 100.0 102.0
+ 127.0 150.0 118.0 107.0 110.0
+ 99.0 98.0 125.0 108.0 95.0
+ 82.0 120.0 94.0 95.0 90.0
+ 67.0 74.0 121.0 91.0 85.0
+ 109.0 96.0 114.0 114.0 103.0
+ 78.0 104.0 73.0 93.0 80.0
+ 115.0 94.0 121.0 115.0 104.0
+ 83.0 91.0 129.0 97.0 83.0
+", sep=" ")
+options(scipen=999) # suppressing scientific notation
+
+  
+job<-read.table(my.datafile,header=T)
+
+attach(job)
+
+names(job)
+```
+
+```{r, echo=F}
+kable(head(job), caption = "Job Proficiency (Header)")
+```
+
+
+**(c)** Fit the multiple regression function containing all four predictor variables as first-order terms. Does it appear that all predictor variables should be retained?
+
+```{r job reg}
+job.reg<- lm(Score~X1+X2+X3+X4)
+coef(summary(job.reg))
+```
+
+> Note the p-value for $X_{2}$ is relatively high and is indicative for consideration that the predictor variable be removed.
+
+\newpage
+
+### 9.11) Refer to Job Proficiency.
+
+**(a)** Using only first-order terms for the predictor variables in the pool of potential $X$ variables, find the four best subset regression model according to the $R^{2}_{a,p}$ criterion.
+
+```{r job reg subsets, fig.align='center',out.width='60%'}
+# From the "leaps"" package
+job.reg.subsets<-regsubsets(Score~X1+X2+X3+X4,data=job,nbest=4)
+plot(job.reg.subsets, scale = "adjr2", main = "Adjusted R^2")
+```
+
+> This plot was constructed using the best subsets algorithm in the "leaps" package in R. The way to read this plot in our model selection is there is a black block where the predictor variable being selected for the model with the corresponding adjusted R squared on the y-axis. So the 4 best models are as follows:
+
+1. For $R^{2}_{a} = 0.96$, the model is $\hat{Y} = \beta_{0} + \beta_{1}X_{1} +\beta_{3}X_{3}+\beta_{4}X_{4}$
+
+2. For $R^{2}_{a} = 0.96$, the model is $\hat{Y} = \beta_{0} + \beta_{1}X_{1}+\beta_{2}X_{2}+ +\beta_{3}X_{3}+\beta_{4}X_{4}$
+
+3. For $R^{2}_{a} = 0.93$, the model is $\hat{Y} = \beta_{0} + \beta_{1}X_{1} +\beta_{3}X_{3}$
+
+4. For $R^{2}_{a} = 0.92$, the model is $\hat{Y} = \beta_{0} + \beta_{1}X_{1}+\beta_{2}X_{2} +\beta_{3}X_{3}$
+
+**(b)** Since there is relatively little difference in $R^{2}_{a,p}$ for the four best subset models, what other criteria would you use to help in the selection of the best model? Discuss.
+
+> As a rule of thumb, we want to consider the model with the least number of predictors that maintain high adjusted R squared. As these are are quite similar in their adjusted R squared values, we may want to consider the Mallows' Cp criterion in addition to the adjusted R squared to investigate which model demonstrates the least amount of bias.
+
+\newpage
+
+### 9.18) Refer to Job Proficiency.
+
+**(a)** Using forward stepwise regression, find the best subset of predictor variables to predict job proficiency. Use $\alpha$ limits of 0.05 and 0.1 for adding or deleting a variable respectively.
+
+```{r forward step job model select}
+null<-lm(Score~1)
+full<-job.reg
+step(null,scope=list(lower=null,upper=full),direction="forward")
+```
+
+> As it is seems to be a general consensus among those in the field to avoid forward stepwise regression in practice, the 'step' function above uses AIC rather than p-values. However, for a single variable at a time, AIC does correspond to using a p-value of 0.15. Using this function still yeilds the same selction as subsetting and choosing the model with the highest adjusted R squared. Also, I'm stubborn and do not want to use SAS since I'm composing in R Markdown. 
+
+\newpage
+
+### 10.18) Refer to Commercial Properties.
+
+**(a)** What do the scatter plot matrix and the correlation matrix show about pairwise linear associations among predictor variables?
+
+```{r scat cor plot comm, echo=F, fig.align='center',out.width='60%'}
+ggpairs(commercial[,-1], aes(alpha = 0.4),
+        upper = list(continuous = wrap("cor", size = 5, color = "red")))+
+  ggtitle("Scatter Plot and Correlation Matrix")
+```
+
+> None of the predictor variables appear to be significantly correlated, although as mentioned before, the Age variables has a bi-modal distribution and Vacancy is severely skewed due to the amount of zeros. 
+
+
+**(b)** Obtain the four variance inflation factors. Do they indicate that a serious multicolinearity problem exists here?
+
+```{r vif, echo=F}
+vif <- function(object, ...)
+UseMethod("vif")
+
+vif.default <- function(object, ...)
+stop("No default method for vif. Sorry.")
+
+vif.lm <- function(object, ...) {
+  V <- summary(object)$cov.unscaled
+  Vi <- crossprod(model.matrix(object))
+        nam <- names(coef(object))
+  if(k <- match("(Intercept)", nam, nomatch = F)) {
+                v1 <- diag(V)[-k]
+                v2 <- (diag(Vi)[-k] - Vi[k, -k]^2/Vi[k,k])
+                nam <- nam[-k]
+        } else {
+                v1 <- diag(V)
+                v2 <- diag(Vi)
+                warning("No intercept term detected. Results may surprise.")
+        }
+        structure(v1*v2, names = nam)
+} 
+vif(comm.reg.full)
+```
+
+> Note that each of the VIF values are less than 10 and indicate that we do not have a problem with multicoliearity.
